@@ -274,7 +274,7 @@ def main():
         
         cm = confusion_matrix(y_test, y_pred, labels=model.classes_)
         
-        st.text('Confusion matrix:\n ' + confusion_matrix(y_test, y_pred, labels=model.classes_))
+#         st.text('Confusion matrix:\n ' + confusion_matrix(y_test, y_pred, labels=model.classes_))
         
         st.text('Model classification report:\n ' + classification_report(y_test, y_pred, target_names=model.classes_))
         
