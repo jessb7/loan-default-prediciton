@@ -19,19 +19,22 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
+@st.cache
 def load_data():
     df = pd.read_csv('Technical_Task_Dataset.csv')
     return df
 
+@st.cache
 def load_model():
     model = pickle.load(open('classification.sav', 'rb'))
     return model
 
+@st.cache
 def load_rfe():
     rfe = pickle.load(open('rfe.sav', 'rb'))
     return rfe
 
+@st.cache
 def plot_histogram(data, x, height, width, margin, title_text=None):
     fig = px.histogram(data, x=x)
     fig.update_layout(bargap=0.05, 
@@ -41,6 +44,7 @@ def plot_histogram(data, x, height, width, margin, title_text=None):
                       margin=dict(t=margin, b=margin))
     return fig
 
+@st.cache
 def plot_heatmap(corr, height, margin, title_text=None):
     fig = go.Figure(go.Heatmap(z=np.array(corr), 
                                x=corr.columns, 
@@ -53,7 +57,8 @@ def plot_heatmap(corr, height, margin, title_text=None):
                       title_text=title_text, 
                       margin=dict(t=margin, b=margin))
     return fig
-    
+
+@st.cache
 def preprocess_df(df):
     df2 = df[df.index.isin(df.query('1900 < `Account Year` < 2023').index)]
     df2=df2.convert_dtypes()
