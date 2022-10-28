@@ -142,6 +142,7 @@ def main():
         
         st.write("""
         1. In two or three paragraphs, please describe your methodological approach to the problem (e.g., how you framed the problem, any assumptions you made, why you chose certain techniques, etc). If applicable, please include any references to the literature that you used
+            
             The first step I took was to conduct data preprocessing and model implementation in a Jupyter Notebook, which allowed for quick visualisations.
             Once these steps were complete, I transferred the relevant code to a py file and created the streamlit app.
             
