@@ -24,29 +24,59 @@ def load_model():
 
 def plot_histogram(data, x, height, width, margin, title_text=None):
     fig = px.histogram(data, x=x)
-    fig.update_layout(bargap=0.05, height=height, width=width, title_text=title_text, margin=dict(t=margin, b=margin))
+    fig.update_layout(bargap=0.05, 
+                      height=height, 
+                      width=width, 
+                      title_text=title_text, 
+                      margin=dict(t=margin, b=margin))
     return fig
 
 def plot_heatmap(corr, height, margin, title_text=None):
-    fig = go.Figure(
-        go.Heatmap(
-        z=np.array(corr),
-        x=corr.columns,
-        y=corr.columns,
-        colorscale=px.colors.diverging.RdBu,
-        zmax=1,
-        zmin=-1
-        )
-    )
-
-#     cmap = sns.diverging_palette(230, 20, as_cmap=True)
-#         fig = sns.heatmap(df6.corr(), mask=np.triu(np.ones_like(df6.corr(), dtype=bool)), 
-#                           cmap=cmap, vmin=-1, vmax=1, center=0,
-#                           square=True, linewidths=.5, cbar_kws={"shrink": .5})
-        
-    fig.update_layout(bargap=0.05, height=height, width=height+100, title_text=title_text, margin=dict(t=margin, b=margin))
-
+    fig = go.Figure(go.Heatmap(z=np.array(corr), 
+                               x=corr.columns, 
+                               y=corr.columns,
+                               colorscale=px.colors.diverging.RdBu, 
+                               zmax=1, zmin=-1))       
+    fig.update_layout(bargap=0.05, 
+                      height=height, 
+                      width=height+100, 
+                      title_text=title_text, 
+                      margin=dict(t=margin, b=margin))
     return fig
+    
+def preprocess_df(df):
+    df2 = df[df.index.isin(df.query('1900 < `Account Year` < 2023').index)]
+    df2=df2.convert_dtypes()
+    df3 = df2.copy()
+    
+    for col in df3.columns:
+        if df3[col].dtype == 'string':
+            try:
+                df3[col] = pd.to_datetime(df2[col])
+            except ValueError:
+                pass
+            
+    df4 = df3[df3['Latest Accounts Date'].dt.year==df3['Account Year']]
+    
+    df4['Years Since Incorporation'] = df4['Account Year']-df4['Date of Incorporation'].dt.year
+    df4['Years Since Incorporation']= df4['Years Since Incorporation'].astype(int)
+    
+    df5 = df4.copy()
+    df5['Trading Status'] = np.where(df5['Trading Status'] == 'Active', "Non-default", "Default")
+    
+    df5['Directors Remuneration'].fillna(df5['EBITDA + Directors Remuneration'] - df5['EBITDA'], inplace=True)
+    df5['Total Assets'].fillna(df5['Total Current Assets'] + df5['Total Non Current Assets'], inplace=True)
+    df5['Working Capital'].fillna(df5['Total Current Assets'] + df5['Total Current Liabilities'], inplace=True) 
+    
+    df6 = df5.drop(columns=['Account Year', 'Bank Overdraft', 'Bank Postcode', 'Capital Expenditure', 
+                            'Date of Incorporation', 'Director Loans (current)', 'Director Loans (non-current)',
+                            'EBIT', 'EBITDA + Directors Remuneration', 'Highest Paid Director ',
+                            'Latest Accounts Date', 'Leasehold', 'Profit Before Tax + Directors Remuneration',
+                            'Registered Number', 'Registered or Trading Postcode', 
+                            'Total Non Current Liabilities (Incl Provisions)', 'UK SIC Code', 'Wages', 'Working Capital'])
+    df7 = df6.dropna(how='any').reset_index(drop=True)
+    return df5, df7
+
     
 def prediction(model, c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity):
     prediction = model.predict([[c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity]])
@@ -146,35 +176,12 @@ def main():
         - Drop rows with NAs
         """)
         
-        df2 = df[df.index.isin(df.query('1900 < `Account Year` < 2023').index)]
-        df2=df2.convert_dtypes()
-        df3 = df2.copy()
-        for col in df3.columns:
-            if df3[col].dtype == 'string':
-                try:
-                    df3[col] = pd.to_datetime(df2[col])
-                except ValueError:
-                    pass
-        df4 = df3[df3['Latest Accounts Date'].dt.year==df3['Account Year']]
-        df4['Years Since Incorporation'] = df4['Account Year']-df4['Date of Incorporation'].dt.year
-        df4['Years Since Incorporation']= df4['Years Since Incorporation'].astype(int)
-        df5 = df4.copy()
-        df5['Trading Status'] = np.where(df5['Trading Status'] == 'Active', "Non-default", "Default")
-        df5['Directors Remuneration'].fillna(df5['EBITDA + Directors Remuneration'] - df5['EBITDA'], inplace=True)
-        df5['Total Assets'].fillna(df5['Total Current Assets'] + df5['Total Non Current Assets'], inplace=True)
-        df5['Working Capital'].fillna(df5['Total Current Assets'] + df5['Total Current Liabilities'], inplace=True)        
-        df6 = df5.drop(columns=['Registered Number','Account Year', 'Date of Incorporation', 'UK SIC Code',
-                                'Bank Postcode', 'Registered or Trading Postcode', 'EBITDA + Directors Remuneration',
-                                'Director Loans (current)', 'Director Loans (non-current)', 'Highest Paid Director ',
-                                'Latest Accounts Date', 'Profit Before Tax + Directors Remuneration',
-                                'EBIT', 'Highest Paid Director ', 'Total Non Current Liabilities (Incl Provisions)', 
-                                'Wages', 'Working Capital', 'Leasehold', 'Bank Overdraft', 'Capital Expenditure'])
-        df7 = df6.dropna(how='any').reset_index(drop=True)
+        df_no_drop, df_final = preprocess_df(df)
 
         st.subheader('Correlation matrix')
         
         height, width, margin = 450, 1500, 10
-        fig = plot_heatmap(corr=df5.corr(), height=700, margin=margin)
+        fig = plot_heatmap(corr=df_no_drop.corr(), height=700, margin=margin)
 
         st.plotly_chart(fig)
         
@@ -203,22 +210,15 @@ def main():
         
         st.subheader('Preprocessed data')
         
-        st.dataframe(df7)
+        st.dataframe(df_final)
         
         st.subheader('Histogram of features')
         
-        select_var = st.selectbox('Select a variable', [i for i in df6.columns])
+        select_var = st.selectbox('Select a variable', [i for i in df_final.columns])
 
-        fig = plot_histogram(data=df7, x=select_var, height=height, width=width, margin=margin)
+        fig = plot_histogram(data=df_final, x=select_var, height=height, width=width, margin=margin)
 
         st.plotly_chart(fig)
-        
-        
-#         'Date of Incorporation', 'Latest Accounts Date', 'UK SIC Code',
-#         'Account Year', 'Bank Postcode', 'Registered or Trading Postcode', 'EBITDA + Directors Remuneration',
-#         'Director Loans (current)', 'Director Loans (non-current)', 'Highest Paid Director ',
-#         'Profit Before Tax + Directors Remuneration'
-
 
         
         
@@ -251,6 +251,11 @@ def main():
         if st.button("Predict"): 
             res, res_prob = prediction(model, c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity) 
             st.success(f'This loan will {res} with a probability of {res_prob}%')
+            
+            with st.beta_expander("Model Parameters"):
+                st.write(f"The model used was Random Forest. \n\n Parameters:", 
+                         eval(eval_df.loc[(eval_df['name'] == select_model_mpredict) 
+                     
 
 
 if __name__ == '__main__':

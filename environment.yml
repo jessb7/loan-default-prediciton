@@ -2,8 +2,7 @@ name: datasci
 dependencies:
   - numpy
   - pandas
-  - plotly.express
-  - plotly.graph_objects
-  - matplotlib.pyplot
+  - plotly
+  - matplotlib
   - seaborn
   - streamlit
