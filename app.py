@@ -3,17 +3,15 @@ import numpy as np
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import streamlit as st
 
-from sklearn.feature_selection import RFE, RFECV
+from sklearn.feature_selection import RFE
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import RepeatedStratifiedKFold
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
 
 st.set_page_config(
     page_title="SME Default Prediction App",
@@ -29,6 +27,10 @@ def load_data():
 def load_model():
     model = pickle.load(open('classification.sav', 'rb'))
     return model
+
+def load_rfe():
+    rfe = pickle.load(open('rfe.sav', 'rb'))
+    return rfe
 
 def plot_histogram(data, x, height, width, margin, title_text=None):
     fig = px.histogram(data, x=x)
@@ -87,9 +89,9 @@ def preprocess_df(df):
     return df5, df7
 
     
-def prediction(model, c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity):
-    prediction = model.predict([[c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity]])
-    prediction_prob = model.predict_proba([[c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity]])
+def prediction(model, c_bank, profit, r_earn, t_asset, t_equity):
+    prediction = model.predict([[c_bank, profit, r_earn, t_asset, t_equity]])
+    prediction_prob = model.predict_proba([[c_bank, profit, r_earn, t_asset, t_equity]])
      
     if prediction == 'Default':
         pred = 'default'
@@ -113,6 +115,7 @@ def main():
     
     df = load_data()
     model = load_model()
+    rfe = load_rfe()
     
     
     # ----------- Sidebar ---------------
@@ -125,14 +128,14 @@ def main():
     if condition == 'Introduction':
         
         st.title("Loan Default Prediction App")
-        st.write("A machine learning app to predict the proability of a SME's loan defaulting")
+        st.write("A machine learning app to predict the proability of an SME's loan defaulting")
         
         st.subheader('About')
 
         st.write("""
         This app predicts the probability of a SME loan defaulting based on selected inputs. 
         The sidebar contains the following sections:
-        - Exploratory data analysis
+        - Data preprocessing
         - The machine learning model
         - Make a prediction
         """)
@@ -203,7 +206,7 @@ def main():
         - Wages
         - Working Capital
         
-        The following variables were removed either due to missing data or variables that are:
+        The following variables were removed either due to missing data or variables that are deemed to be less informative:
         - Bank Overdraft
         - Bank Postcode
         - Capital Expenditure
@@ -235,7 +238,52 @@ def main():
     
     elif condition == 'The machine learning model':
         
-        st.subheader('ML model')
+        st.subheader('Machine learning approach')
+                
+        df_no_drop, df_final = preprocess_df(df)
+        
+        xdf = df_final.drop(['Trading Status'], axis=1)
+        ydf = df_final['Trading Status']
+        
+        X = xdf[xdf.columns[rfe.get_support(1)]]
+        y = ydf.to_numpy()
+        
+        st.write("Recursive feature elimination was used to select the top 5 features, the final features included in the model are:")
+        for i in range(xdf.shape[1]):
+            if rfe.support_[i]==True:
+                st.write("- ", xdf.columns[i])
+        
+        st.subheader('Random forest model')
+        
+        st.write("A random forest model was used based on the literautre and time constraints. ")
+        
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=0)
+        model.fit(X_train, y_train)
+        
+        y_pred = model.predict(X_test)
+        y_proba = model.predict_proba(X_test)
+        
+        cm = confusion_matrix(y_test, y_pred, labels=model.classes_)
+#         ConfusionMatrixDisplay(confusion_matrix=cm).plot()
+
+        st.text('Model Report:\n ' + classification_report(y_test, y_pred, target_names=model.classes_))
+        
+        st.subheader('Model metrics')
+        
+        y_pred_binary = np.where(y_pred == 'Default', 0, 1)
+        y_test_binary = np.where(y_test == 'Default', 0, 1)
+        
+        accu = round(accuracy_score(y_test_binary, y_pred_binary),2)
+        prec = round(precision_score(y_test_binary, y_pred_binary),2)
+        reca = round(recall_score(y_test_binary, y_pred_binary),2)
+        fsco = round(f1_score(y_test_binary, y_pred_binary),2)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Accuracy", accu)
+        col2.metric("Precision", prec)
+        col3.metric("Recall", reca)
+        col4.metric("F1 Score", fsco)
+                
     
     
     # ------------- Make a prediction ------------------------------
@@ -246,10 +294,7 @@ def main():
         st.write("Enter the relevant fields below to predict the probability of a company's loan defaulty")
         
         # following lines create boxes in which user can enter data required to make prediction 
-        c_exp = st.number_input('Capital expenditure')
         c_bank = st.number_input('Cash at the bank',0)
-        ebitda = st.number_input('EBITDA')
-        e_remun = st.number_input('Employees remuneration',0)
         profit = st.number_input('Profit for the year')
         r_earn = st.number_input('Retained earnings')
         t_asset = st.number_input('Total assets',0)
@@ -258,12 +303,11 @@ def main():
 
         # when 'Predict' is clicked, make the prediction and store it 
         if st.button("Predict"): 
-            res, res_prob = prediction(model, c_exp, c_bank, ebitda, e_remun, profit, r_earn, t_asset, t_equity) 
+            res, res_prob = prediction(model, c_bank, profit, r_earn, t_asset, t_equity) 
             st.success(f'This loan will {res} with a probability of {res_prob}%')
             
-            with st.beta_expander("Model Parameters"):
-                st.write(f"The model used was Random Forest. \n\n Parameters:") 
-#                          eval(eval_df.loc[(eval_df['name'] == select_model_mpredict) 
+            with st.expander("Model details"):
+                st.write(f"The model used was Random Forest.") 
                      
 
 
