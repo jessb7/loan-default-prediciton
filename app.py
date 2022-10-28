@@ -95,11 +95,9 @@ def prediction(model, c_bank, profit, r_earn, t_asset, t_equity):
      
     if prediction == 'Default':
         pred = 'default'
-        pred_prob = prediction_prob[0][0]*100
     else:
         pred = 'not default'
-        pred_prob = prediction_prob[0][1]*100
-    
+    pred_prob = prediction_prob[0][0]*100
     return pred, pred_prob
 
 
@@ -206,7 +204,7 @@ def main():
         - Wages
         - Working Capital
         
-        The following variables were removed either due to missing data or variables that are deemed to be less informative:
+        The following variables were removed either due to missing data or are deemed to be less informative:
         - Bank Overdraft
         - Bank Postcode
         - Capital Expenditure
@@ -304,7 +302,7 @@ def main():
         # when 'Predict' is clicked, make the prediction and store it 
         if st.button("Predict"): 
             res, res_prob = prediction(model, c_bank, profit, r_earn, t_asset, t_equity) 
-            st.success(f'This loan will {res} with a probability of {res_prob}%')
+            st.success(f'This company loan will default with a probability of {res_prob}%')
             
             with st.expander("Model details"):
                 st.write(f"The model used was Random Forest.") 
