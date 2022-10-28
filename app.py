@@ -142,19 +142,29 @@ def main():
         
         st.write("""
         1. In two or three paragraphs, please describe your methodological approach to the problem (e.g., how you framed the problem, any assumptions you made, why you chose certain techniques, etc). If applicable, please include any references to the literature that you used
+            The first step I took was to conduct data preprocessing and model implementation in a Jupyter Notebook, which allowed for quick visualisations.
+            Once these steps were complete, I transferred the relevant code to a py file and created the streamlit app.
             
+            My initial focus was on the data available, investigating the variables and their relationship to each other.
+            Many missing data points existed, which was handled by dropping NAs, although imputation methods could have been used.
+            Using recursive feature elimination to reduce the feature space, five features were selected as input to the model.
+            Once the data was preprocessed, I developed a predictive model for binary classification.
+            The literature showed that neural networks have promise for this type of problem, however, for the sake of simplicity and time, I chose to implement a Random Forest, which has also shown promise.
             
+            The resulting Random Forest model was trained on a random sample of 80% of the data and tested on the remaining 20%.
+            Cross validation could be applied to reduce the chances of overfitting and improve the ability to predict on unseen data.
+            Overall, the modelled had an accuracy of 84%, which could be improved with more input.
         2. In 3 bullet points, please explain what feedback you'd give to the engineering team responsible for the data API to help them improve any aspect of the tool that you think would benefit
-            - 1
-            - 2
-            - 3
+            - Put checks in place to ensure data is entered correctly, e.g., postcodes appeared in the latest accounts dates
+            - If missing data can be filled based on data from other variables, then this should be implemented, e.g., total assets = total current assets + total non-current assets, so if one of the three variables are missing, then these can be easily imputed.
+            - Incorporate further information about the business, e.g., value of the loan applied for, credit history, free text information allowing for NLP.
         3. In 3 bullet points, please give guidance to the business regarding any suggestions you'd give them for using this model in production
-            - 1
-            - 2
-            - 3
+            - Quantify the uncertainty of the predictions through confidence intervals.
+            - Use other tools in conjunction with the prediction app, such as reviewing individual applications to assess outcome reliability.
+            - Train the users to understand how the model works and what data is being used.
         4. What two things would you do to improve this test? One line for each.
-            - 1
-            - 2
+            - Implement a variety of machine learning models, including XGBoost and neural networks.
+            - Cross validation was not used in this implementation. This would allow for better predictions on unseen data by helping to avoid overfitting.
         """)        
         
     # ------------- Data preprocessing ------------------------
@@ -253,7 +263,7 @@ def main():
         
         st.subheader('Random forest model')
         
-        st.write("A random forest model was used based on the literautre and time constraints. ")
+        st.write("A random forest model was used based on the literautre and time constraints. The model was trained on 80% of the data and tested on 20%.")
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=0)
         model.fit(X_train, y_train)
@@ -262,9 +272,10 @@ def main():
         y_proba = model.predict_proba(X_test)
         
         cm = confusion_matrix(y_test, y_pred, labels=model.classes_)
-#         ConfusionMatrixDisplay(confusion_matrix=cm).plot()
-
-        st.text('Model Report:\n ' + classification_report(y_test, y_pred, target_names=model.classes_))
+        
+        st.text('Confusion matrix:\n ' + confusion_matrix(y_test, y_pred, labels=model.classes_))
+        
+        st.text('Model classification report:\n ' + classification_report(y_test, y_pred, target_names=model.classes_))
         
         st.subheader('Model metrics')
         
