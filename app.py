@@ -3,9 +3,17 @@ import numpy as np
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
-import seaborn as sns
 import streamlit as st
+
+from sklearn.feature_selection import RFE, RFECV
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
 
 st.set_page_config(
     page_title="SME Default Prediction App",
@@ -59,9 +67,10 @@ def preprocess_df(df):
     df4 = df3[df3['Latest Accounts Date'].dt.year==df3['Account Year']]
     
     df4['Years Since Incorporation'] = df4['Account Year']-df4['Date of Incorporation'].dt.year
-    df4['Years Since Incorporation']= df4['Years Since Incorporation'].astype(int)
+    df41 = df4.copy()
+    df41['Years Since Incorporation']= df41['Years Since Incorporation'].astype(int)
     
-    df5 = df4.copy()
+    df5 = df41.copy()
     df5['Trading Status'] = np.where(df5['Trading Status'] == 'Active', "Non-default", "Default")
     
     df5['Directors Remuneration'].fillna(df5['EBITDA + Directors Remuneration'] - df5['EBITDA'], inplace=True)
@@ -194,7 +203,7 @@ def main():
         - Wages
         - Working Capital
         
-        The following variables were removed:
+        The following variables were removed either due to missing data or variables that are:
         - Bank Overdraft
         - Bank Postcode
         - Capital Expenditure
@@ -253,8 +262,8 @@ def main():
             st.success(f'This loan will {res} with a probability of {res_prob}%')
             
             with st.beta_expander("Model Parameters"):
-                st.write(f"The model used was Random Forest. \n\n Parameters:", 
-                         eval(eval_df.loc[(eval_df['name'] == select_model_mpredict) 
+                st.write(f"The model used was Random Forest. \n\n Parameters:") 
+#                          eval(eval_df.loc[(eval_df['name'] == select_model_mpredict) 
                      
 
 

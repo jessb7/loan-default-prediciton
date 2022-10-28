@@ -1,8 +1,0 @@
-name: datasci
-dependencies:
-  - numpy
-  - pandas
-  - plotly
-  - matplotlib
-  - seaborn
-  - streamlit
