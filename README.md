@@ -1,4 +1,4 @@
-# KTP Data Science
+# Prediction of loan default for SMEs
 
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://jessb7-loan-default-prediciton-app-grb3yv.streamlitapp.com/)
